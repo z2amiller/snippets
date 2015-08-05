@@ -1,5 +1,3 @@
-# snippets
-
 metrics.cgi
 ===========
 
