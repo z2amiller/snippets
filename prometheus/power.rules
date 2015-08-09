@@ -1,0 +1,1 @@
+mfi_sensor_watts = mfi_sensor_current * mfi_sensor_voltage * mfi_sensor_powerfactor

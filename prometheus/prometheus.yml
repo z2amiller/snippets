@@ -1,0 +1,26 @@
+global:
+  scrape_interval:     1m
+  scrape_timeout:      5s
+  evaluation_interval: 1m
+
+rule_files:
+  - "power.rules"
+
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself.
+scrape_configs:
+  - job_name: 'pushgateway'
+    target_groups:
+      - targets: ['localhost:9091']
+
+  - job_name: 'prometheus'
+    target_groups:
+      - targets: ['localhost:8000']
+
+  - job_name: 'nodestats'
+    target_groups:
+      - targets: ['localhost:9100']
+
+  - job_name: 'power'
+    target_groups:
+      - targets: ['10.1.20.24:81', '10.1.20.22:81']
