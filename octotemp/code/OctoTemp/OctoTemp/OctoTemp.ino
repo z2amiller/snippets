@@ -5,7 +5,8 @@
 #define SCLPIN 12
 
 // TODO(z2amiller):  Set up interrupts to call back when the temperature
-//                   on one of the pins gets too hot.
+//                   on one of the pins gets too hot.  Needs to be added to
+//                   an options class passed to the ADC library.
 #define ADC_INT 14
 
 #define ADC_ADDR 0x37
@@ -14,13 +15,13 @@
 class TI128D818 {
  public:
   TI128D818();
-  TI128D818(uint8_t add_addr);
-  bool init(uint8_t adc_mode = 0);
-  float temp(uint8_t channel = 0);
+  TI128D818(const uint8_t add_addr);
+  bool init(const uint8_t adc_mode = 0);
+  float temp(const uint8_t channel = 0);
  private:
-  uint8_t read8(uint8_t addr);
-  uint16_t read16(uint8_t addr);
-  void write8(uint8_t addr, uint8_t data);
+  uint8_t read8(const uint8_t addr);
+  uint16_t read16(const uint8_t addr);
+  void write8(const uint8_t addr, const uint8_t data);
   void pollUntilReady();
   uint8_t adc_addr_;
 };
@@ -29,27 +30,22 @@ TI128D818::TI128D818() {
   adc_addr_ = ADC_ADDR;
 }
 
-TI128D818::TI128D818(uint8_t adc_addr) {
+TI128D818::TI128D818(const uint8_t adc_addr) {
     adc_addr_ = adc_addr;
 }
 
 // TODO(z2amiller):  Have a maximum allowed elapsed time?
 // TODO(z2amiller):  Can't dump to serial in a library.  #ifdef debug?
 void TI128D818::pollUntilReady() {
-  bool ok = false;
   int delay_time = 33;
-  while (!ok) {
+  while (true) {
     delay(delay_time);
-    Serial.print("Polling ADC for ready state..");
-    int r = read8(0x0C);
+    const int r = read8(0x0C);
     if (r && 0x02) {
-      Serial.print(" not OK yet, state = ");
-      Serial.println(r);
       delay_time *= 1.4;
-    } else {
-      ok = true;
-      Serial.println(" Ready!");
+      continue;
     }
+    break;
   }
 }
 
@@ -57,7 +53,7 @@ void TI128D818::pollUntilReady() {
 // TODO(z2amiller):  Have the TI128D818 library only return the raw
 //                   temperature value, this temperature conversion
 //                   is very application specific.
-float TI128D818::temp(uint8_t channel) {
+float TI128D818::temp(const uint8_t channel) {
   uint16_t t = read16(channel);
   // This is a 12 bit ADC; bit shift this 16 bit value to get the
   // 12 bits we are interested in.
@@ -78,7 +74,7 @@ float TI128D818::temp(uint8_t channel) {
 // TODO(z2amiller):  Provide a configuration class that encapsulates
 //                   all of the ADC configuration options.
 //                   (pins, modes, etc).
-bool TI128D818::init(uint8_t adc_mode) {
+bool TI128D818::init(const uint8_t adc_mode) {
   Wire.begin(SDAPIN, SCLPIN);
   write8(0x00, 0x00); // disable all.
   pollUntilReady();
@@ -88,38 +84,33 @@ bool TI128D818::init(uint8_t adc_mode) {
   return true;
 }
 
-void TI128D818::write8(uint8_t addr, uint8_t data) {
+void TI128D818::write8(const uint8_t addr, const uint8_t data) {
   Wire.beginTransmission(adc_addr_);
   Wire.write(addr);
   Wire.write(data);
   Wire.endTransmission();
 }
 
-uint8_t TI128D818::read8(uint8_t addr) {
+uint8_t TI128D818::read8(const uint8_t addr) {
   Wire.beginTransmission(adc_addr_);
   Wire.write(addr);
   Wire.endTransmission();
   Wire.beginTransmission(adc_addr_);
   Wire.requestFrom(adc_addr_, (uint8_t)1);
-  uint8_t ret;
-  ret = Wire.read();
+  const uint8_t ret = Wire.read();
   Wire.endTransmission();
   return ret;
 }
 
-uint16_t TI128D818::read16(uint8_t addr) {
+uint16_t TI128D818::read16(const uint8_t addr) {
   Wire.beginTransmission(adc_addr_);
   Wire.write(addr);
   Wire.endTransmission();
   Wire.beginTransmission(adc_addr_);
   Wire.requestFrom(adc_addr_, (uint8_t)2);
-  uint16_t ret;
-  ret = Wire.read();
+  uint16_t ret = Wire.read();
   ret <<= 8;
   ret |= Wire.read();
-  Serial.print(" (raw read ");
-  Serial.print(ret);
-  Serial.print(") ");
   Wire.endTransmission();
   return ret;
 }
@@ -145,7 +136,5 @@ void loop(void)
   Serial.print("  ch 3 = ");
   Serial.print(adc.temp(0x23));
   Serial.println("");
-  Serial.println("");
   delay(5000);
 } 
-
