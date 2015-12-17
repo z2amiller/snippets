@@ -5,7 +5,7 @@
     (no_connects 0)
     (area 15.514536 18.70288 75.926201 56.65218)
     (thickness 1.6)
-    (drawings 5)
+    (drawings 6)
     (tracks 269)
     (zones 0)
     (modules 42)
@@ -1510,6 +1510,9 @@
     )
   )
 
+  (gr_text "z2amiller OctoTemp v0.3.1" (at 66.55 36.128 90) (layer B.SilkS)
+    (effects (font (size 1.5 1.5) (thickness 0.3)) (justify mirror))
+  )
   (gr_circle (center 22.55 31.528) (end 22.55 31.928) (layer F.SilkS) (width 0.2))
   (gr_line (start 68 20.578) (end 68 54.578) (angle 90) (layer Edge.Cuts) (width 0.15))
   (gr_line (start 20.75 20.578) (end 20.75 54.578) (angle 90) (layer Edge.Cuts) (width 0.15))
