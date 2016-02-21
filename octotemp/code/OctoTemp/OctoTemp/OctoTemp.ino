@@ -1,8 +1,12 @@
 #include <Math.h>
 #include <Wire.h>
+#include <prometheus.h>
 
 #define SDAPIN 13
 #define SCLPIN 12
+
+#define SERVER_IP           "10.1.20.200"
+#define SERVER_PORT         9091
 
 // TODO(z2amiller):  Set up interrupts to call back when the temperature
 //                   on one of the pins gets too hot.  Needs to be added to
@@ -10,14 +14,22 @@
 #define ADC_INT 14
 
 #define ADC_ADDR 0x37
+#define NUM_CHANNELS 4
+
+const String channels[NUM_CHANNELS] = {
+  "hot_water_out",
+  "recirc_return",
+  "cold_water_in",
+  "recirc_pump_in",
+};
 
 // TODO(z2amiller):  Cut this out into a separate library.
 class TI128D818 {
  public:
   TI128D818();
-  TI128D818(const uint8_t add_addr);
-  bool init(const uint8_t adc_mode = 0);
-  float temp(const uint8_t channel = 0);
+  TI128D818(const uint8_t adc_addr);
+  bool Init(const uint8_t adc_mode = 0);
+  uint16_t RawValue(const uint8_t channel);
  private:
   uint8_t read8(const uint8_t addr);
   uint16_t read16(const uint8_t addr);
@@ -35,7 +47,6 @@ TI128D818::TI128D818(const uint8_t adc_addr) {
 }
 
 // TODO(z2amiller):  Have a maximum allowed elapsed time?
-// TODO(z2amiller):  Can't dump to serial in a library.  #ifdef debug?
 void TI128D818::pollUntilReady() {
   int delay_time = 33;
   while (true) {
@@ -49,32 +60,23 @@ void TI128D818::pollUntilReady() {
   }
 }
 
-
-// TODO(z2amiller):  Have the TI128D818 library only return the raw
-//                   temperature value, this temperature conversion
-//                   is very application specific.
-float TI128D818::temp(const uint8_t channel) {
-  uint16_t t = read16(channel);
+// Takes the channel number (0 - 8).  If given an invalid
+// channel, returns 0.  The actual I2C channel ID is offset
+// by 0x20.
+uint16_t TI128D818::RawValue(const uint8_t channel) {
+  if (channel < 0 || channel > 8) {
+    return 0;
+  }
   // This is a 12 bit ADC; bit shift this 16 bit value to get the
   // 12 bits we are interested in.
-  t >>= 4;
-  // Calculate the actual temperature using the Steinhart-Hart
-  // formula.
-  const int measured_resistance = 10000.0 * ((4096.0 / t) - 1); 
-  const float mr_log = log(measured_resistance / 10000.0);
-  // Steinhart-hart coefficients for the Vishay NTCLG100E2103.
-  // (10K @ 25C thermistor)
-  const float tempK = 1 / (0.003354016 +
-                          (0.0002569850 * mr_log) +
-                          (0.000002620131 * pow(mr_log, 2)) +
-                          (0.00000006383091 * pow(mr_log, 3)));
-  return tempK - 273.15; // tempC
+  return read16(channel + 0x20) >> 4;
 }
+
 
 // TODO(z2amiller):  Provide a configuration class that encapsulates
 //                   all of the ADC configuration options.
 //                   (pins, modes, etc).
-bool TI128D818::init(const uint8_t adc_mode) {
+bool TI128D818::Init(const uint8_t adc_mode) {
   Wire.begin(SDAPIN, SCLPIN);
   write8(0x00, 0x00); // disable all.
   pollUntilReady();
@@ -116,25 +118,41 @@ uint16_t TI128D818::read16(const uint8_t addr) {
 }
 
 TI128D818 adc = TI128D818();
+PrometheusClient prom = PrometheusClient(SERVER_IP, SERVER_PORT,
+                                         "OctoTemp", "WaterHeater");
+
 void setup(void)
 {
   Serial.begin(115200);
-  adc.init(0x1);
+  adc.Init(0x1);
+}
+
+float TempC(const uint8_t channel) {
+  const uint16_t t = adc.RawValue(channel);
+  const int measured_resistance = 10000.0 * ((4096.0 / t) - 1); 
+  const float mr_log = log(measured_resistance / 10000.0);
+  // Steinhart-Hart coefficients for the Vishay NTCLG100E2103.
+  // (10K @ 25C thermistor)
+  const float tempK = 1 / (0.003354016 +
+                          (0.0002569850 * mr_log) +
+                          (0.000002620131 * pow(mr_log, 2)) +
+                          (0.00000006383091 * pow(mr_log, 3)));
+  return tempK - 273.15; // tempC
+}
+
+float TempF(const uint8_t channel) {
+  return TempC(channel) * 1.8 + 32;
 }
 
 // TODO(z2amiller):  Do something interesting with this data.
 //                   Post to prometheus or MQTT or something.
 void loop(void)
 {
-  Serial.print("ch 0 = ");
-  Serial.print(adc.temp(0x20));
-  Serial.print("  ch 1 = ");
-  Serial.print(adc.temp(0x21));
-  Serial.println("");
-  Serial.print("ch 2 = ");
-  Serial.print(adc.temp(0x22));
-  Serial.print("  ch 3 = ");
-  Serial.print(adc.temp(0x23));
-  Serial.println("");
+  for (int ch = 0; ch < NUM_CHANNELS; ch++) {
+    prom.AddGauge("octo_sensor_tempF", TempF(ch),
+                  "location=\"" + channels[ch] + "\"");
+    Serial.println(channels[ch] + "(" + ch + ") = " + TempF(ch));
+  }
+  prom.Send();
   delay(5000);
 } 
