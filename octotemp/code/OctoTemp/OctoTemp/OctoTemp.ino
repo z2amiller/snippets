@@ -148,11 +148,12 @@ float TempF(const uint8_t channel) {
 //                   Post to prometheus or MQTT or something.
 void loop(void)
 {
+  MapMetric met = MapMetric("octo_sensor_tempF", "location");
   for (int ch = 0; ch < NUM_CHANNELS; ch++) {
-    prom.AddGauge("octo_sensor_tempF", TempF(ch),
-                  "location=\"" + channels[ch] + "\"");
+    met.Add(channels[ch], TempF(ch));
     Serial.println(channels[ch] + "(" + ch + ") = " + TempF(ch));
   }
+  prom.AddMetric(met);
   prom.Send();
-  delay(5000);
+  delay(60000);
 } 
