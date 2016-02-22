@@ -160,7 +160,7 @@ float TempC(const uint8_t channel) {
                           (0.0002569850 * mr_log) +
                           (0.000002620131 * pow(mr_log, 2)) +
                           (0.00000006383091 * pow(mr_log, 3)));
-  return tempK - 273.15; // tempC
+  return constrain(tempK - 273.15, 0, 100); // tempC
 }
 
 float TempF(const uint8_t channel) {
