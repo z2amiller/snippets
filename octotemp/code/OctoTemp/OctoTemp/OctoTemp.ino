@@ -1,3 +1,15 @@
+#include <ESP8266WiFi.h>
+#include <ESP8266WiFiAP.h>
+#include <ESP8266WiFiGeneric.h>
+#include <ESP8266WiFiMulti.h>
+#include <ESP8266WiFiScan.h>
+#include <ESP8266WiFiSTA.h>
+#include <ESP8266WiFiType.h>
+#include <WiFiClient.h>
+#include <WiFiClientSecure.h>
+#include <WiFiServer.h>
+#include <WiFiUdp.h>
+
 #include <Math.h>
 #include <Wire.h>
 #include <prometheus.h>
@@ -16,11 +28,16 @@
 #define ADC_ADDR 0x37
 #define NUM_CHANNELS 4
 
+
+#define WIFI_SSID           "Embedded Pie"
+#define WIFI_PASSWORD       "embedded"
+
+
 const String channels[NUM_CHANNELS] = {
   "hot_water_out",
   "recirc_return",
   "cold_water_in",
-  "recirc_pump_in",
+  "ambient",
 };
 
 // TODO(z2amiller):  Cut this out into a separate library.
@@ -125,6 +142,18 @@ void setup(void)
 {
   Serial.begin(115200);
   adc.Init(0x1);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    Serial.print("\n\r \n\rConnecting to WiFi.");
+  // Wait for connection
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(100);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.print("Connected to ");
+  Serial.println(WIFI_SSID);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
 }
 
 float TempC(const uint8_t channel) {
