@@ -167,8 +167,6 @@ float TempF(const uint8_t channel) {
   return TempC(channel) * 1.8 + 32;
 }
 
-// TODO(z2amiller):  Do something interesting with this data.
-//                   Post to prometheus or MQTT or something.
 void loop(void)
 {
   MapMetric met = MapMetric("octo_sensor_tempF", "location");
