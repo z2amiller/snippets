@@ -1,12 +1,10 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
-#include <WiFiClientSecure.h>
-#include <WiFiServer.h>
-#include <WiFiUdp.h>
 
 #include <Math.h>
 #include <Wire.h>
 #include <prometheus.h>
+#include <adc128d818.h>
 
 #define SDAPIN 13
 #define SCLPIN 12
@@ -20,12 +18,11 @@
 #define ADC_INT 14
 
 #define ADC_ADDR 0x37
-#define NUM_CHANNELS 4
-
 
 #define WIFI_SSID           "Embedded Pie"
 #define WIFI_PASSWORD       "embedded"
 
+#define NUM_CHANNELS 4
 
 const String channels[NUM_CHANNELS] = {
   "hot_water_out",
@@ -34,108 +31,14 @@ const String channels[NUM_CHANNELS] = {
   "ambient",
 };
 
-// TODO(z2amiller):  Cut this out into a separate library.
-class TI128D818 {
- public:
-  TI128D818();
-  TI128D818(const uint8_t adc_addr);
-  bool Init(const uint8_t adc_mode = 0);
-  uint16_t RawValue(const uint8_t channel);
- private:
-  uint8_t read8(const uint8_t addr);
-  uint16_t read16(const uint8_t addr);
-  void write8(const uint8_t addr, const uint8_t data);
-  void pollUntilReady();
-  uint8_t adc_addr_;
-};
-
-TI128D818::TI128D818() {
-  adc_addr_ = ADC_ADDR;
-}
-
-TI128D818::TI128D818(const uint8_t adc_addr) {
-    adc_addr_ = adc_addr;
-}
-
-// TODO(z2amiller):  Have a maximum allowed elapsed time?
-void TI128D818::pollUntilReady() {
-  int delay_time = 33;
-  while (true) {
-    delay(delay_time);
-    const int r = read8(0x0C);
-    if (r && 0x02) {
-      delay_time *= 1.4;
-      continue;
-    }
-    break;
-  }
-}
-
-// Takes the channel number (0 - 8).  If given an invalid
-// channel, returns 0.  The actual I2C channel ID is offset
-// by 0x20.
-uint16_t TI128D818::RawValue(const uint8_t channel) {
-  if (channel < 0 || channel > 8) {
-    return 0;
-  }
-  // This is a 12 bit ADC; bit shift this 16 bit value to get the
-  // 12 bits we are interested in.
-  return read16(channel + 0x20) >> 4;
-}
-
-
-// TODO(z2amiller):  Provide a configuration class that encapsulates
-//                   all of the ADC configuration options.
-//                   (pins, modes, etc).
-bool TI128D818::Init(const uint8_t adc_mode) {
-  Wire.begin(SDAPIN, SCLPIN);
-  write8(0x00, 0x00); // disable all.
-  pollUntilReady();
-  write8(0x0B, 0x02 | 0x01); // Mode 1, external vref.
-  write8(0x07, 0x01);        // continuous conversion.
-  write8(0x00, 0x02 | 0x01); // interrupt enable, start ADC.
-  return true;
-}
-
-void TI128D818::write8(const uint8_t addr, const uint8_t data) {
-  Wire.beginTransmission(adc_addr_);
-  Wire.write(addr);
-  Wire.write(data);
-  Wire.endTransmission();
-}
-
-uint8_t TI128D818::read8(const uint8_t addr) {
-  Wire.beginTransmission(adc_addr_);
-  Wire.write(addr);
-  Wire.endTransmission();
-  Wire.beginTransmission(adc_addr_);
-  Wire.requestFrom(adc_addr_, (uint8_t)1);
-  const uint8_t ret = Wire.read();
-  Wire.endTransmission();
-  return ret;
-}
-
-uint16_t TI128D818::read16(const uint8_t addr) {
-  Wire.beginTransmission(adc_addr_);
-  Wire.write(addr);
-  Wire.endTransmission();
-  Wire.beginTransmission(adc_addr_);
-  Wire.requestFrom(adc_addr_, (uint8_t)2);
-  uint16_t ret = Wire.read();
-  ret <<= 8;
-  ret |= Wire.read();
-  Wire.endTransmission();
-  return ret;
-}
-
-TI128D818 adc = TI128D818();
+adc128d818 adc = adc128d818(ADC_ADDR, SDAPIN, SCLPIN);
 PrometheusClient prom = PrometheusClient(SERVER_IP, SERVER_PORT,
                                          "OctoTemp", "WaterHeater");
 
 void setup(void)
 {
   Serial.begin(115200);
-  adc.Init(0x1);
+  adc.Init();
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     Serial.print("\n\r \n\rConnecting to WiFi.");
   // Wait for connection
