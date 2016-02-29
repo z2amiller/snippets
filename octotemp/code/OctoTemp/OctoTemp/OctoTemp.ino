@@ -22,22 +22,24 @@
 #define WIFI_SSID           "Embedded Pie"
 #define WIFI_PASSWORD       "embedded"
 
-#define NUM_CHANNELS 4
+#define NUM_CHANNELS 5
 
 const String channels[NUM_CHANNELS] = {
   "hot_water_out",
   "recirc_return",
   "cold_water_in",
   "ambient",
+  "house_water",
 };
 
-adc128d818 adc = adc128d818(ADC_ADDR, SDAPIN, SCLPIN);
+adc128d818 adc = adc128d818(ADC_ADDR);
 PrometheusClient prom = PrometheusClient(SERVER_IP, SERVER_PORT,
                                          "OctoTemp", "WaterHeater");
 
 void setup(void)
 {
   Serial.begin(115200);
+  Wire.begin(SDAPIN, SCLPIN);
   adc.Init();
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     Serial.print("\n\r \n\rConnecting to WiFi.");
