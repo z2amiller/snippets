@@ -248,13 +248,13 @@
     )
   )
 
-  (module Capacitors_SMD:C_0603_HandSoldering (layer F.Cu) (tedit 541A9B4D) (tstamp 570A767C)
+  (module Capacitors_SMD:C_0603_HandSoldering (layer F.Cu) (tedit 570AFC4E) (tstamp 570A767C)
     (at 115.5 70.25 180)
     (descr "Capacitor SMD 0603, hand soldering")
     (tags "capacitor 0603")
     (path /570A971F)
     (attr smd)
-    (fp_text reference C4 (at 0 -1.9 180) (layer F.SilkS)
+    (fp_text reference C4 (at 3 0 180) (layer F.SilkS)
       (effects (font (size 1 1) (thickness 0.15)))
     )
     (fp_text value 100nf (at 0 1.9 180) (layer F.Fab)
@@ -345,7 +345,7 @@
       (net 20 RXD))
     (pad 22 smd oval (at 16 0 270) (size 2.4 1.1) (layers F.Cu F.Paste F.Mask)
       (net 21 TXD))
-    (model ${ESPLIB}/ESP8266.3dshapes/ESP-12.wrl
+    (model ESP8266.3dshapes/ESP-12.wrl
       (at (xyz 0.04 0 0))
       (scale (xyz 0.3937 0.3937 0.3937))
       (rotate (xyz 0 0 0))
@@ -430,6 +430,11 @@
       (net 1 GND))
     (pad 6 thru_hole oval (at 3.4991 1.13746) (size 1.55 1) (drill oval 1.15 0.5) (layers *.Cu *.Mask F.SilkS)
       (net 1 GND))
+    (model "/Library/Application Support/kicad/packages3d/conn_pc/usb_B_micro_smd.wrl"
+      (at (xyz 0 0 0))
+      (scale (xyz 1 1 1))
+      (rotate (xyz 0 0 0))
+    )
   )
 
   (module Pin_Headers:Pin_Header_Straight_2x03 (layer B.Cu) (tedit 570ABD21) (tstamp 570A7710)
